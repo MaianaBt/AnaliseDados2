@@ -1,0 +1,142 @@
+---
+title: "Lab1CP1"
+author: "Maiana Brito"
+date: "30 de outubro de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(plotly)
+library(highcharter)
+
+dadosCEAP <- read_csv("~/AnaliseDados2/Lab1/dadosCEAP.csv")
+```
+
+## Introdução
+
+Neste checkpoint utilizarei os dados disponibilizados na atividade, estes dados apresentam dados referentes ao uso do CEAP(cota para o exercício da atividade parlamentar) pelos deputados, informando a cada despesa o valor da mesma, o tipo, nome do deputado como o partido e estado do mesmo.
+
+### 1. Quais os partidos que mais fazem uso da CEAP? Quais os partidos que menos fazem uso? Mesmas perguntas considerando valores em R$.
+
+Para uma melhor visualização a seguir estão gráficos de barra, o primeiro com os partidos e gastos de cada e o segundo com os partidos e a frequência do uso do CEAP.
+
+```{r, echo=FALSE}
+partido = dadosCEAP %>%
+  group_by(sgPartido) %>%
+  summarise(usoCEAP = n(), gastoCEAP = sum(valorLíquido))
+partido <- na.omit(partido)
+gastoP <- partido[order(partido$gastoCEAP), ]
+
+hchart(gastoP, "bar", hcaes(x = sgPartido, y = gastoCEAP))%>%
+    hc_title(text = "Partido e o gasto do CEAP",
+             style = list(fontSize = "15px"))
+
+```
+
+A partir do gráfico podemos perceber que os partidos que mais gastam são o PMDB(R$ 71502438.62), PT( R$ 67878749.33), PSDB (R$ 52649824.02).
+```{r, echo=FALSE}
+uso <- partido[order(partido$usoCEAP), ]
+hchart(uso, "bar", hcaes(x = sgPartido, y = usoCEAP))%>%
+    hc_title(text = "Partido e o uso do CEAP",
+             style = list(fontSize = "15px"))
+
+```
+
+Já a partir do segundo gráfico notamos que os partidos que mais fazem uso do CEAP são PT que teve frequência de 129587, já o PMDB 112875x e PSDB 98241x.
+
+### 2. Quais os tipos de despesa mais comuns no uso da CEAP? Mesma pergunta considerando valores em R$.
+
+```{r, echo=FALSE}
+despesa = dadosCEAP %>%
+  group_by(tipoDespesa) %>%
+  summarise(frequencia = n(), gasto = sum(valorLíquido))
+
+freqD <- despesa[order(despesa$frequencia), ]
+gastoD <- despesa[order(despesa$gasto), ]
+
+
+hchart(freqD, "bar", hcaes(x = tipoDespesa, y = frequencia))%>%
+    hc_title(text = "Despesas frequentes no uso do CEAP",
+             style = list(fontSize = "15px"))
+
+hchart(gastoD, "bar", hcaes(x = tipoDespesa, y = gasto))%>%
+    hc_title(text = "Valores gastos em despesas do CEAP",
+             style = list(fontSize = "15px"))
+
+```
+
+
+Para responder essa pergunta escolhi o gráfico de barras novamente.
+Com relação à despesa mais frequente é possível ver que são **Emissão Bilhete Aéreo(300.185x), Combustíveis e lubrificantes(196.858x) e Telefonia(89.322)**, já as despesas que tiveram maior gasto foram **Divulgação da atividade parlamentar(R$ 136.771.779,62), Emissão Bilhete Aéreo(R$ 131.029.914,23), Locação ou fretamento de veículos automotores(R$ 131.029.914,23)**. 
+
+
+
+### 3.Levando em conta o estado pelo qual o deputado se elegeu, quais os estados que mais fazem uso da CEAP? Quais os que menos fazem uso? Mesmas perguntas considerando gastos em R$. Por que você acha isso?
+```{r, echo=FALSE}
+estado = dadosCEAP %>%
+  group_by(sgUF) %>%
+  summarise(frequencia = n(), gasto = sum(valorLíquido)) 
+estado <- na.omit(estado)
+
+freqE <- estado[order(estado$frequencia), ]
+gastoE <- estado[order(estado$gasto), ]
+
+hchart(gastoE, "column", hcaes(x = sgUF, y = gasto))%>%
+    hc_title(text = "Estado do deputado e o gasto do CEAP",
+             style = list(fontSize = "15px"))
+hchart(freqE, "column", hcaes(x = sgUF, y = frequencia))%>%
+    hc_title(text = "Estado do deputado e o uso do CEAP",
+             style = list(fontSize = "15px"))
+
+```
+Os estados que mais fazem uso do CEAP e gastam mais são SP e MG, enquanto DF e AP são os que menos fazem uso, já os estados que menos gastam são DF e MT. Acredito que os valores encontrados para ambos os casos(gasto e frequencia de uso) está relacionado com a quantidade de deputados de cada estado.
+
+
+### 4. Quais os parlamentares que mais gastam com CEAP e quais os que menos gastam?
+
+```{r, echo=FALSE}
+deputados = dadosCEAP %>%
+  group_by(nomeParlamentar, sgPartido) %>%
+  summarise(frequencia = n(), gasto = sum(valorLíquido))
+
+gastoD <- deputados[order(deputados$gasto),]
+menos <- head(gastoD)
+mais <- tail(gastoD)
+
+hchart(menos, "bar", hcaes(x = nomeParlamentar, y = gasto))%>%
+    hc_title(text = "Gráfico 1. Os 6 deputados que menos gastaram do CEAP",
+             style = list(fontSize = "15px"))
+
+hchart(mais, "bar", hcaes(x = nomeParlamentar, y = gasto))%>%
+    hc_title(text = "Os 6 deputados que mais gastaram do CEAP",
+             style = list(fontSize = "15px"))
+
+```
+
+No gráfico 1 estão o nome dos 6 deputados que menos gastaram já no Gráfico 2 estão os deputados que mais gastaram.
+
+### 5. Existe correlação entre a quantidade de gastos no exterior e o valor restituído da CEAP?  
+
+```{r, echo=FALSE}
+gastosExterior = dadosCEAP %>%
+  filter(tipoDocumento %in% 2)
+
+qtdGastoExtParla = gastosExterior %>%
+  group_by(nomeParlamentar) %>%
+  summarise(qtdGastos = n())
+
+cor_qtdGasto_rest <- na.omit(inner_join(deputados, qtdGastoExtParla, "nomeParlamentar"))
+
+ggplot(cor_qtdGasto_rest, aes(x=qtdGastos, y=gasto)) +
+    geom_point(shape=1) +
+    geom_smooth(method=lm) + 
+  labs(title = "Correlação entre gasto exterior e gasto nacional de cada deputado", x = "Gasto Exterior", y = "Restituído")
+
+correlacao <- cor(cor_qtdGasto_rest$qtdGastos, cor_qtdGasto_rest$gasto)
+```
+
+Para responder essa pergunta eu agrupei os dados em relação ao parlamentar e vi se existia a correlação entre o **valor líquido total** de cota que o deputado recebeu e a **quantidade** de gastos que o mesmo teve com gastos no Exterior, para esse caso encontrei correlação quase nula, valor aproximado de *-0,0038..*, como esse valor é próximo de zero pode-se dizer que **não apresenta correçalão**.

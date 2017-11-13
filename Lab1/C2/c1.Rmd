@@ -1,0 +1,96 @@
+---
+title: "Lab1Checkpoint2: Análise de Gastos de Deputados: Suas Perguntas"
+author: "Maiana"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(plotly)
+library(highcharter)
+
+dadosCEAP <- read_csv("~/AnaliseDados2/Lab1/dadosCEAP.csv")
+
+dadosCEAP = dadosCEAP %>%
+  mutate(day = weekdays(as.Date(dataEmissao,'%Y-%m-%d')))
+
+fim.semana <- dadosCEAP %>%
+  filter(day %in% c("sábado", "domingo"))
+
+```
+
+Baseado sobre os gastos dos deputados federais, pensei em três perguntas que serão complementares e buscam detalhar os gastos dos finais de semana pelos partidos/deputados e com quais despesas, essas perguntas irão ser respondidas a partir dos dados da CEAP.
+
+
+## 1. Quais foram os partidos nos quais deputados gastam mais no fim de semana ?
+
+```{r}
+parlamentar.fs <- fim.semana %>%
+  group_by(sgPartido) %>%
+  summarise(gastos = sum(valorLíquido), frequencia = n())
+
+parlamentar.fs <- parlamentar.fs[order(parlamentar.fs$gastos, decreasing = TRUE),]
+
+mais <- head(parlamentar.fs, n=3)
+
+hchart(mais, "bar", hcaes(x = sgPartido, y = gastos))%>%
+    hc_title(text = "Top 3 partidos que mais gastaram do CEAP no fim de semana",
+             style = list(fontSize = "15px"))
+```
+
+Podemos ver que os 3 partidos são **PT, PMDB, PSDB**, sabemos que esses partidos são os que possuem mais influência no Brasil, e também uma maior quantidade de políticos eleitos.
+
+## 2. Sabendo que o partido que mais gasta no final de semana é o PT, qual deputado deste partido gastou mais no final de semana, segundo os dados do CEAP?
+
+
+```{r}
+PTfds <- fim.semana %>%
+  filter(sgPartido == "PT")
+  
+dep <- PTfds%>%
+  group_by(nomeParlamentar) %>%
+  summarise(soma = sum(valorLíquido))
+dep <- na.omit(dep)
+dep <- dep[order(dep$soma, decreasing = TRUE),]
+
+dep <- head(dep, n=3)
+
+hchart(dep, "bar", hcaes(x = nomeParlamentar, y = soma))%>%
+    hc_title(text = "Os 3 deputados que mais gastaram no domingo no CEAP",
+             style = list(fontSize = "15px"))
+```
+
+Foi o deputado **ZECA DIRCEU**, do estado de Paraná(PR) com gastos de **180.728,4**.
+
+##3. Sabendo que o deputado Vicente Candido é o que mais gasta no final de semana, qual o tipo de despesa mais frequente e seus gastos nesse feriodo ?
+
+
+```{r}
+depesaVC <- dadosCEAP %>%
+  filter(nomeParlamentar == "ZECA DIRCEU") %>%
+  group_by(tipoDespesa) %>%
+  summarise(gastos = sum(valorLíquido), frequencia = n())
+
+depesaVC <- depesaVC[order(depesaVC$frequencia, decreasing=TRUE), ]
+
+hchart(depesaVC, "bar", hcaes(x = tipoDespesa, y = frequencia))%>%
+    hc_title(text = "Despesas frequentes do deputado ZECA DIRCEU",
+             style = list(fontSize = "15px"))
+```
+
+
+Nesse caso, a despesa mais frequente foi **SERVIÇO DE TÁXI, PEDÁGIO E ESTACIONAMENTO**, sendo gasto 53046.80 com uma frequência de 1695 vezes, seguido pela despesa **FORNECIMENTO DE ALIMENTAÇÃO DO PARLAMENTAR** que custou 62939,26 com uma frequência de 1342.
+
+*Minha opnião*:Vale ressaltar que esses são tipos de despesas que deveriam ser consideradas particulares, nos momentos que não estão em horário de trabalho.
+
+```{r}
+despGasto <- depesaVC[order(depesaVC$gastos, decreasing=TRUE), ]
+
+hchart(despGasto, "bar", hcaes(x = tipoDespesa, y = gastos))%>%
+    hc_title(text = "Gastos das despesas do deputado ZECA DIRCEU",
+             style = list(fontSize = "15px"))
+```
+
+Já despesa a qual o deputado gastou mais foi **Emissão Bilhete Aéreo**, sendo gasto 267414.77 com uma frequência de 687 vezes.
